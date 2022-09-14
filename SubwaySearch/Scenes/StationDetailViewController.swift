@@ -6,6 +6,9 @@ import Alamofire
 
 class StationDetailViewController: UIViewController{
     
+    private let station: Station
+    private var realtimeArrivalList: [StationArriveDataResponseModel.RealTimeArrival] = []
+    
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         let inset = 16.0
@@ -43,7 +46,7 @@ class StationDetailViewController: UIViewController{
         ///서울역처럼 뒤에 역이 들어간다면 작동에 오류가 발생한다
         ///그 문제점을 해결하기 위해  아래와 같은 코드를 사용
         
-        let stationName = "서울역"
+        let stationName = station.stationName
         
         let urlString = "http://swopenapi.seoul.go.kr/api/subway/sample/json/realtimeStationArrival/0/5/\(stationName.replacingOccurrences(of: "역", with: ""))"
         
@@ -53,17 +56,26 @@ class StationDetailViewController: UIViewController{
                 self?.refreshControl.endRefreshing()
                 guard case .success(let data) = response.result else {return}
                 
-                print(data.realtimeArrivalList)
+                self?.realtimeArrivalList = data.realtimeArrivalList
+                self?.collectionView.reloadData()
                 
             }
             .resume()
     }
     
+    init(station: Station) {
+        self.station = station
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        navigationItem.title = "선택된 역"
+        navigationItem.title = station.stationName
         
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints{
@@ -78,14 +90,15 @@ extension StationDetailViewController: UICollectionViewDataSource{
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "StationDetailCollectionViewCell", for: indexPath) as? StationDetailCollectionViewCell
         
-        cell?.setup()
+        let realTimeArrival = realtimeArrivalList[indexPath.row]
+        cell?.setup(with: realTimeArrival)
         
     
         return cell ?? UICollectionViewCell()
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 3
+        return realtimeArrivalList.count
     }
     
 }
